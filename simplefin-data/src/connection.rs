@@ -1,12 +1,13 @@
 //! Connection-related data structures.
 
-use std::ops::Deref;
-
+use derive_more::{AsRef, Deref, DerefMut};
 use serde::{Deserialize, Serialize};
 use url::{ParseError, Url};
+use utoipa::ToSchema;
 
 /// Unique identifier for a connection.
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, ToSchema, Deref, AsRef, DerefMut)]
+#[as_ref(forward)]
 pub struct ConnectionId(String);
 
 impl ConnectionId {
@@ -16,16 +17,9 @@ impl ConnectionId {
     }
 }
 
-impl Deref for ConnectionId {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 /// Human-readable name for a connection.
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, ToSchema, Deref, DerefMut, AsRef)]
+#[as_ref(forward)]
 pub struct ConnectionName(String);
 
 impl ConnectionName {
@@ -35,16 +29,9 @@ impl ConnectionName {
     }
 }
 
-impl Deref for ConnectionName {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 /// Unique identifier for an organization.
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, ToSchema, Deref, DerefMut, AsRef)]
+#[as_ref(forward)]
 pub struct OrganizationId(String);
 
 impl OrganizationId {
@@ -54,16 +41,10 @@ impl OrganizationId {
     }
 }
 
-impl Deref for OrganizationId {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 /// URL for an organization's website.
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, ToSchema, Deref, DerefMut, AsRef)]
+#[as_ref(forward)]
+#[schema(value_type = String)]
 pub struct OrganizationUrl(Url);
 
 impl OrganizationUrl {
@@ -77,16 +58,10 @@ impl OrganizationUrl {
     }
 }
 
-impl Deref for OrganizationUrl {
-    type Target = Url;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 /// URL for a SimpleFin connection endpoint.
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, ToSchema, Deref, DerefMut, AsRef)]
+#[as_ref(forward)]
+#[schema(value_type = String)]
 pub struct SimplefinUrl(Url);
 
 impl SimplefinUrl {
@@ -100,18 +75,10 @@ impl SimplefinUrl {
     }
 }
 
-impl Deref for SimplefinUrl {
-    type Target = Url;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 /// Represents a SimpleFin connection to a financial institution.
 ///
 /// See the [crate-level documentation](crate) for usage examples.
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, ToSchema)]
 pub struct Connection {
     /// Unique identifier for this connection.
     #[serde(rename = "conn_id")]

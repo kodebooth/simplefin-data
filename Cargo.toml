@@ -1,18 +1,17 @@
-[package]
-description = "data structures for the SimpleFIN v2 protocol"
-edition = "2024"
-homepage = "https://github.com/kodebooth/simplefin-data"
-license = "MIT"
-name = "simplefin-data"
-readme = "README.md"
-repository = "https://github.com/kodebooth/simplefin-data"
-version = "0.2.0"
+[workspace]
+members = ["simplefin-data", "simplefin-server"]
+resolver = "3"
 
-[dependencies]
-chrono = { version = "0.4.45", features = ["serde"] }
-serde = { version = "1", features = ["derive"] }
-url = { version = "2", features = ["serde"] }
-
-[dev-dependencies]
-serde_json = { version = "1" }
+[workspace.dependencies]
+async-trait = "0"
+axum = { version = "0", features = ["macros"] }
+chrono = { version = "0", features = ["serde"] }
+derive_more = { version = "2", features = ["as_ref", "deref", "deref_mut"] }
 rstest = { version = "0" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tower = { version = "0", features = ["util"] }
+url = { version = "2", features = ["serde"] }
+utoipa = { version = "5", features = ["macros", "axum_extras"] }
+utoipa-axum = { version = "0" }

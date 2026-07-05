@@ -1,19 +1,21 @@
 //! Account-related data structures.
 
-use crate::{
-    deserialize_f32_str, deserialize_f32_str_option, serialize_f32_str, serialize_f32_str_option,
+use crate::serde::{
+    deserialize_date, deserialize_f32_str, deserialize_f32_str_option, serialize_date,
+    serialize_f32_str, serialize_f32_str_option,
 };
-use std::ops::Deref;
 
-use crate::{deserialize_date, serialize_date};
 use chrono::{DateTime, Utc};
+use derive_more::{AsRef, Deref, DerefMut};
 use serde::{Deserialize, Serialize};
 use url::Url;
+use utoipa::ToSchema;
 
 use crate::{connection::ConnectionId, transaction::Transaction};
 
 /// Unique identifier for an account.
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, ToSchema, Deref, AsRef, DerefMut)]
+#[as_ref(forward)]
 pub struct AccountId(String);
 
 impl AccountId {
@@ -23,30 +25,15 @@ impl AccountId {
     }
 }
 
-impl Deref for AccountId {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 /// Human-readable name for an account.
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, ToSchema, Deref, DerefMut, AsRef)]
+#[as_ref(forward)]
 pub struct AccountName(String);
 
 impl AccountName {
     /// Creates a new account name from a string.
     pub fn new(id: impl AsRef<str>) -> Self {
         Self(id.as_ref().to_string())
-    }
-}
-
-impl Deref for AccountName {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 
@@ -62,10 +49,11 @@ impl Deref for AccountName {
 /// let usd = Currency::new("USD");
 /// let custom = Currency::new("https://example.com/currency");
 /// ```
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, ToSchema)]
 #[serde(untagged)]
 pub enum Currency {
     /// Custom currency identified by a URL.
+    #[schema(value_type = String)]
     Custom(Url),
     /// Official currency code (e.g., "USD", "EUR").
     Official(String),
@@ -108,8 +96,12 @@ impl Currency {
 ///     extra: None,
 /// };
 /// ```
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-pub struct Account<ExtraT = (), TransactionExtraT = ()> {
+#[derive(Serialize, Deserialize, PartialEq, Debug, ToSchema)]
+pub struct Account<ExtraT = (), TransactionExtraT = ()>
+where
+    ExtraT: ToSchema,
+    TransactionExtraT: ToSchema,
+{
     /// Unique identifier for this account.
     #[serde(rename = "id")]
     pub account_id: AccountId,
@@ -140,6 +132,7 @@ pub struct Account<ExtraT = (), TransactionExtraT = ()> {
         deserialize_with = "deserialize_date"
     )]
     #[serde(rename = "balance-date")]
+    #[schema(value_type = i64)]
     pub balance_date: DateTime<Utc>,
     /// List of transactions for this account.
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -157,13 +150,14 @@ mod tests {
     use super::*;
     use rstest::rstest;
 
-    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    #[derive(Debug, Serialize, Deserialize, PartialEq, ToSchema)]
     struct Extra {
         #[serde(
             serialize_with = "serialize_date",
             deserialize_with = "deserialize_date",
             rename = "account-open-date"
         )]
+        #[schema(value_type = i64)]
         pub account_open_date: DateTime<Utc>,
     }
 

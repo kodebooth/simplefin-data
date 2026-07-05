@@ -1,0 +1,24 @@
+[package]
+description = "Data structures for the SimpleFIN v2 protocol"
+edition = "2024"
+homepage = "https://github.com/kodebooth/simplefin/tree/main/simplefin-data"
+license = "MIT"
+name = "simplefin-data"
+readme = "README.md"
+repository = "https://github.com/kodebooth/simplefin"
+version = "0.2.0"
+
+[features]
+axum = ["dep:axum"]
+
+[dependencies]
+axum = { workspace = true, optional = true }
+chrono = { workspace = true }
+derive_more = { workspace = true }
+serde = { workspace = true }
+url = { workspace = true }
+utoipa = { workspace = true }
+
+[dev-dependencies]
+rstest = { workspace = true }
+serde_json = { workspace = true }

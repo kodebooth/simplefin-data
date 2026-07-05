@@ -4,6 +4,10 @@ use std::{fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 use serde::{Deserializer, de};
+use utoipa::ToSchema;
+
+#[cfg(feature = "axum")]
+use axum::{http::StatusCode, response::IntoResponse};
 
 use crate::{account::AccountId, connection::ConnectionId};
 
@@ -11,7 +15,7 @@ use crate::{account::AccountId, connection::ConnectionId};
 pub struct CodeParseError;
 
 /// General error types that apply to the entire API.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, ToSchema)]
 pub enum General {
     /// Generic API error.
     Api,
@@ -41,7 +45,7 @@ impl FromStr for General {
 }
 
 /// Connection-specific error types.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, ToSchema)]
 pub enum Connection {
     /// Authentication error for a specific connection.
     Authentication,
@@ -67,7 +71,7 @@ impl FromStr for Connection {
 }
 
 /// Account-specific error types.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, ToSchema)]
 pub enum Account {
     /// Account operation failed.
     Failed,
@@ -102,7 +106,7 @@ impl FromStr for Account {
 /// the error category (gen, con, act) and the optional subcode provides specificity.
 ///
 /// See [`Error`] for usage examples.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, ToSchema)]
 pub enum Code {
     /// General error affecting the entire API.
     General(Option<General>),
@@ -112,13 +116,8 @@ pub enum Code {
     Account(Option<Account>),
 }
 
-impl Code {
-    /// Deserializes an error code from a string format like "gen.auth" or "con.".
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the code format is invalid or contains unknown prefixes/subcodes.
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Self, D::Error>
+impl<'de> Deserialize<'de> for Code {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -191,13 +190,9 @@ impl Serialize for Code {
 /// - `act`: Account-specific errors
 ///
 /// See the [crate-level documentation](crate) for usage examples.
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, ToSchema)]
 pub struct Error {
     /// Hierarchical error code indicating the type of error.
-    #[serde(
-        serialize_with = "Code::serialize",
-        deserialize_with = "Code::deserialize"
-    )]
     pub code: Code,
     /// Human-readable error message.
     #[serde(rename = "msg")]
@@ -208,6 +203,27 @@ pub struct Error {
     /// Account ID associated with this error (if applicable).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub account_id: Option<AccountId>,
+}
+
+/// Server-side errors for SimpleFIN operations.
+///
+/// These errors map to HTTP status codes when using the `axum` feature.
+/// Note: This is a different Error type from the API `Error` above.
+pub enum ServerError {
+    /// Payment is required to access this resource (HTTP 402)
+    PaymentRequired,
+    /// Access is forbidden, typically due to invalid credentials (HTTP 403)
+    Forbidden,
+}
+
+#[cfg(feature = "axum")]
+impl IntoResponse for ServerError {
+    fn into_response(self) -> axum::response::Response {
+        match self {
+            ServerError::PaymentRequired => StatusCode::PAYMENT_REQUIRED.into_response(),
+            ServerError::Forbidden => StatusCode::FORBIDDEN.into_response(),
+        }
+    }
 }
 
 #[cfg(test)]

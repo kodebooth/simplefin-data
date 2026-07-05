@@ -1,14 +1,18 @@
 //! Transaction-related data structures.
 
-use crate::{deserialize_f32_str, serialize_f32_str};
-use std::ops::Deref;
+use crate::serde::{
+    deserialize_date, deserialize_date_option, deserialize_f32_str, serialize_date,
+    serialize_date_option, serialize_f32_str,
+};
 
-use crate::{deserialize_date, deserialize_date_option, serialize_date, serialize_date_option};
 use chrono::{DateTime, Utc};
+use derive_more::{AsRef, Deref, DerefMut};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 /// Unique identifier for a transaction.
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, ToSchema, Deref, AsRef, DerefMut)]
+#[as_ref(forward)]
 pub struct TransactionId(String);
 
 impl TransactionId {
@@ -18,21 +22,16 @@ impl TransactionId {
     }
 }
 
-impl Deref for TransactionId {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 /// Represents a financial transaction.
 ///
 /// Transactions represent financial activity on an account, with amounts
 /// serialized as strings to maintain precision.
 /// See the [crate-level documentation](crate) for usage examples.
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-pub struct Transaction<ExtraT = ()> {
+#[derive(Serialize, Deserialize, PartialEq, Debug, ToSchema)]
+pub struct Transaction<ExtraT = ()>
+where
+    ExtraT: ToSchema,
+{
     /// Unique identifier for this transaction.
     #[serde(rename = "id")]
     pub transaction_id: TransactionId,
@@ -41,6 +40,7 @@ pub struct Transaction<ExtraT = ()> {
         serialize_with = "serialize_date",
         deserialize_with = "deserialize_date"
     )]
+    #[schema(value_type = i64)]
     pub posted: DateTime<Utc>,
     /// Transaction amount (positive for credits, negative for debits).
     #[serde(
@@ -57,6 +57,7 @@ pub struct Transaction<ExtraT = ()> {
         deserialize_with = "deserialize_date_option",
         default
     )]
+    #[schema(value_type = i64)]
     pub transacted_at: Option<DateTime<Utc>>,
     /// Whether the transaction is still pending (not yet cleared).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -72,7 +73,7 @@ mod tests {
     use super::*;
     use rstest::rstest;
 
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq, ToSchema)]
     struct Extra {
         pub category: String,
     }

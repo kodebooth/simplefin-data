@@ -7,9 +7,9 @@
 [crates-badge]: https://img.shields.io/crates/v/simplefin-data
 [crates-url]: https://crates.io/crates/simplefin-data
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
-[mit-url]: https://github.com/kodebooth/simplefin-data/blob/main/LICENSE
-[actions-badge]: https://github.com/kodebooth/simplefin-data/workflows/CI/badge.svg
-[actions-url]: https://github.com/kodebooth/simplefin-data/actions?query=workflow%3ACI+branch%3Amain
+[mit-url]: https://github.com/kodebooth/simplefin/blob/main/LICENSE
+[actions-badge]: https://github.com/kodebooth/simplefin/workflows/CI/badge.svg
+[actions-url]: https://github.com/kodebooth/simplefin/actions?query=workflow%3ACI+branch%3Amain
 
 ## SimpleFIN Data Structures
 
@@ -97,15 +97,16 @@ use simplefin_data::account::{Account, AccountId, AccountName, Currency};
 use simplefin_data::connection::ConnectionId;
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 struct AccountExtra {
     #[serde(rename = "account-open-date")]
     pub account_open_date: i64,
     pub branch_id: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 struct TransactionExtra {
     pub category: String,
     pub tags: Vec<String>,

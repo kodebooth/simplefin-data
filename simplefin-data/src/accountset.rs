@@ -1,17 +1,29 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-use crate::{account::Account, connection::Connection, error::Error};
+use crate::{
+    account::{Account, AccountId},
+    connection::Connection,
+    error::Error,
+    serde::{deserialize_date_option, serialize_date_option},
+    version::Version,
+};
 
 /// Represents a complete SimpleFIN API response containing accounts, connections, and errors.
 ///
 /// This is the primary data structure returned by SimpleFIN v2 endpoints.
 /// See the [crate-level documentation](crate) for usage examples.
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, ToSchema)]
 #[serde(bound(
     serialize = "AccountExtraT: Serialize, TransactionExtraT: Serialize",
     deserialize = "AccountExtraT: Deserialize<'de>, TransactionExtraT: Deserialize<'de>"
 ))]
-pub struct AccountSet<AccountExtraT = (), TransactionExtraT = ()> {
+pub struct AccountSet<AccountExtraT = (), TransactionExtraT = ()>
+where
+    AccountExtraT: ToSchema,
+    TransactionExtraT: ToSchema,
+{
     pub errlist: Vec<Error>,
     #[deprecated = "Use errlist"]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -22,7 +34,11 @@ pub struct AccountSet<AccountExtraT = (), TransactionExtraT = ()> {
     pub accounts: Vec<Account<AccountExtraT, TransactionExtraT>>,
 }
 
-impl<AccountExtraT, TransactionExtraT> Default for AccountSet<AccountExtraT, TransactionExtraT> {
+impl<AccountExtraT, TransactionExtraT> Default for AccountSet<AccountExtraT, TransactionExtraT>
+where
+    AccountExtraT: ToSchema,
+    TransactionExtraT: ToSchema,
+{
     fn default() -> Self {
         Self {
             errlist: Vec::new(),
@@ -34,13 +50,89 @@ impl<AccountExtraT, TransactionExtraT> Default for AccountSet<AccountExtraT, Tra
     }
 }
 
+/// Query parameters for the `/accounts` endpoint.
+///
+/// These parameters allow clients to filter and customize the account data
+/// returned by the server. All fields are optional.
+///
+/// # Examples
+///
+/// ```
+/// use simplefin_data::accountset::AccountsQuery;
+/// use simplefin_data::account::AccountId;
+/// use chrono::{DateTime, Utc};
+///
+/// // Request only balances without transactions
+/// let query = AccountsQuery {
+///     start_date: None,
+///     end_date: None,
+///     pending: None,
+///     account_id: None,
+///     balances_only: Some(()),
+///     version: None,
+/// };
+///
+/// // Request specific account with date range
+/// let query = AccountsQuery {
+///     start_date: Some(DateTime::from_timestamp_secs(1704067200).unwrap()),
+///     end_date: Some(DateTime::from_timestamp_secs(1706745600).unwrap()),
+///     pending: Some(()),
+///     account_id: Some(AccountId::new("ACC-123")),
+///     balances_only: Some(()),
+///     version: None,
+/// };
+/// ```
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct AccountsQuery {
+    /// Filter transactions to those on or after this date
+    #[serde(
+        rename = "start-date",
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_date_option",
+        deserialize_with = "deserialize_date_option",
+        default
+    )]
+    pub start_date: Option<DateTime<Utc>>,
+    /// Filter transactions to those on or before this date
+    #[serde(
+        rename = "end-date",
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_date_option",
+        deserialize_with = "deserialize_date_option",
+        default
+    )]
+    pub end_date: Option<DateTime<Utc>>,
+    /// Include pending transactions when true
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    //TODO: This needs to actually parse pending=1
+    pub pending: Option<()>,
+    /// Return only data for this specific account
+    #[serde(
+        rename = "account-id",
+        skip_serializing_if = "Option::is_none",
+        default
+    )]
+    pub account_id: Option<AccountId>,
+    /// Return only balance information, omit all transactions
+    #[serde(
+        rename = "balances-only",
+        skip_serializing_if = "Option::is_none",
+        default
+    )]
+    //TODO: This needs to actually parse balances-only=1
+    pub balances_only: Option<()>,
+    /// Request a specific protocol version
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub version: Option<Version>,
+}
+
 #[cfg(test)]
 mod tests {
 
     use crate::{
         account::{Account, AccountId, AccountName, Currency},
         connection::{ConnectionId, ConnectionName, OrganizationId, OrganizationUrl, SimplefinUrl},
-        deserialize_date, serialize_date,
+        serde::{deserialize_date, serialize_date},
         transaction::{Transaction, TransactionId},
     };
 
@@ -48,13 +140,14 @@ mod tests {
     use chrono::{DateTime, Utc};
     use rstest::rstest;
 
-    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    #[derive(Debug, Serialize, Deserialize, PartialEq, ToSchema)]
     struct AccountExtra {
         #[serde(
             serialize_with = "serialize_date",
             deserialize_with = "deserialize_date",
             rename = "account-open-date"
         )]
+        #[schema(value_type = i64)]
         pub account_open_date: DateTime<Utc>,
     }
 
