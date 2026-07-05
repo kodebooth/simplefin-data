@@ -1,0 +1,16 @@
+[package]
+description = "data structures for the SimpleFIN v2 protocol"
+edition = "2024"
+license = "MIT"
+name = "simplefin-data"
+readme = "README.md"
+repository = "https://github.com/kodebooth/simplefin"
+version = "0.1.0"
+
+[dependencies]
+chrono = { version = "0.4.45", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+url = { version = "2", features = ["serde"] }
+
+[dev-dependencies]
+serde_json = { version = "1" }
